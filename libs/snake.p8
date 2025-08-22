@@ -25,15 +25,15 @@ Anim_d2 = {
 Snake = {
     anim = 0,
     animCount = 12,
-    counter = 1,
+    address = 1,
     direction = 0,
     body_direction = {},
     body_position = {},
     new = function(self, x, y, d, col)
         local o = {
             direction = d,
-            body_direction = {d},
-            body_position = {vec2:new(x,y)},
+            body_direction = {d, d},
+            body_position = {vec2:new(x,y), vec2:new(x,y) - Directions[d]},
             color = col
         }
         setmetatable(o, self)
@@ -41,7 +41,9 @@ Snake = {
         return o
     end,
     update = function(self)
-        self[self.counter](self)
+        if #self < 1 then return end
+        local remove = self[self.address]()
+        self:remove_part(remove)
         add(self.body_direction, self.direction, 1)
         add(self.body_position, self.body_position[1] + Directions[self.direction], 1)
         while #self.body_position > #self + 1 do
@@ -83,34 +85,59 @@ Snake = {
         self.anim += 1
         self.anim %= self.animCount
     end,
-    add_counter = function(self, incr)
-        self.counter += incr or 1
-        if self.counter > #self then self.counter = 1 end
+    add_address = function(self, increment)
+        self:set_address(self.address + increment or 1)
     end,
-    set_counter = function(self, idx)
-        self.counter = idx or 1
-        if self.counter > #self then self.counter = 1 end
+    set_address = function(self, idx)
+        local newidx = mid(idx, 1, #self)
+        if newidx ~= idx then newidx = 1 end
+        self.address = newidx
     end,
     turn = function(self, left)
         if left then self.direction += 1
         else self.direction -= 1 end
         self.direction %= 4
     end,
-    remove_event = {},
-    add_inst = function(self, inst, idx)
-        if mid(idx, 1, #self + 1) ~= idx then idx = #self + 1 end
-        self[idx] = inst
-    end,
-    remove_inst = function(self, idx)
-        if mid(idx, 1, #self + 1) ~= idx then idx = #self + 1 end
-        for f in all(self.remove_event[idx]) do
-            f(self, idx)
+    add_inst = function(self, instruction, idx)
+        local idx = idx or #self + 1
+        local newidx = mid(1, ceil(idx), #self + 1)
+        if newidx ~= idx or #self < newidx then
+            self:add_part(newidx)
         end
-        deli(remove_event,idx)
-        deli(self, idx)
+        if instruction ~= nil then
+            self[newidx]:add_inst(instruction)
+        end
     end,
-    add_remove_event = function(self, func, idx)
-        self.remove_event[idx] = self.remove_event[idx] or {}
-        add(self.remove_event[idx], func)
+    add_part = function(self, idx)
+        local prev, next = nil, nil
+        if idx > 1 then prev = self[idx - 1] end
+        if idx < #self + 1 then next = self[idx] end
+        local new_part = Body_part:new(self, prev, next)
+        add(self, new_part, idx)
+        if prev then prev.next = new_part end
+        if next then next.prev = new_part end
+        self[idx]:add_inst(Proceed:new())
+    end,
+    remove_part = function(self, toRemove)
+        if toRemove == nil then return end
+        for i = 1, #self do
+            self[i](toRemove)
+        end
+        for i = #self, 1, -1 do
+            self[i](toRemove)
+        end
+        if #toRemove > 0 then
+            for d = 1, #toRemove do
+                local d_body = toRemove[d]
+                local d_prev, d_next = d_body.prev, d_body.next
+                if d_next then d_next.prev = d_prev end
+                if d_prev then d_prev.next = d_next end
+                del(self, d_body)
+            end
+            self:add_address(-#toRemove)
+        end
+    end,
+    remove_part_at = function(self, idx)
+        self:remove_part(self[idx])
     end
 }

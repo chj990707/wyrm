@@ -3,45 +3,45 @@
 #include vector.p8
 
 function _init()
-    testSnake = {}
-    testSnake[1] = Snake:new(9, 8, 2)
-    testSnake[2] = Snake:new(6, 9, 1,{12, 6, 13})
-    testSnake[3] = Snake:new(5, 6, 0)
-    testSnake[4] = Snake:new(8, 5, 3,{12, 6, 13})
-    testSnake[5] = Snake:new(3, 4, 3,{5, 13, 1})
-    testSnake[6] = Snake:new(11, 10, 1,{6, 7, 13})
-    for i=1,4 do
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Turn:new(true))
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Turn:new(true))
-    end
-    for i=5,6 do
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Instruction:new())
-        testSnake[i]:add_inst(Turn:new(true))
-    end
+    testSnake = Snake:new(11, 9, 2)
+    testSnake:add_inst()
+    testSnake:add_inst()
+    testSnake:add_inst()
+    testSnake:add_inst()
+    testSnake:add_inst(Burnt:new())
+    testSnake:add_inst(Flame:new())
+    testSnake:add_inst()
+    testSnake:add_inst()
+    testSnake:add_inst()
+    testSnake:add_inst()
+    testSnake:add_inst(TurnRight:new())
     t=0
 end
 
 function _update()
-    if t == 0 then
-        for s in all(testSnake) do
-            s:update()
-        end
+    if t == 6 then
+        testSnake:update()
     end
     t+=1
-    t%=6
+    t%=12
 end
 
 function _draw()
     cls()
-    for s in all(testSnake) do
-        s:draw(vec2:new(4, 4))
+    testSnake:draw(vec2:new(4, 4))
+    draw_program(testSnake)
+    pal()
+end
+
+function draw_program(snake)
+    local x, y, icons = 8, 88
+    rect(10, 90, 117, 123)
+    for i = 1, #snake do
+        if i == snake.address then pal(7, 8) end
+        icons = snake[i]:inst_icons()
+        for j = 1, 4 do
+            spr(icons[j], x + i * 8, y + j * 8)
+        end
+        pal()
     end
 end
